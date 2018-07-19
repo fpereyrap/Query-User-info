@@ -1,0 +1,212 @@
+<html>
+<head>
+<title>User Report</title>
+<HTA:APPLICATION 
+     ID="objTest" 
+     APPLICATIONNAME="Get User Information"
+     SCROLL="NO"
+     SINGLEINSTANCE="yes"
+>
+</head>
+
+<SCRIPT LANGUAGE="VBScript">
+
+Sub Window_onLoad
+    window.resizeTo 400,530
+    Junk.InnerText = "No Queries Runned Yet"
+End Sub
+
+Sub TestSub
+
+  'On Error Resume Next'
+  Dim GetInfo
+  Dim InfoLine
+  Dim SearchField
+  Dim SearchString
+  Dim ReturnField
+  Dim totallenght
+
+  'timer'
+  set WScriptShell = CreateObject("WScript.Shell")
+
+  'creating the report csv'
+  Const ForWriting = 2
+  Set objFSO = CreateObject("Scripting.FileSystemObject")
+  Set objLogFile = objFSO.CreateTextFile("Reporte.csv",ForWriting, True)
+
+  ' get the root dse object'
+  Dim objRootDSE
+  Set objRootDSE = GetObject("LDAP://rootDSE")
+
+  ' get the root naming context to start the search at the root of the forest '
+  Dim strRootAdsPath
+  strRootAdsPath = "GC://" & objRootDSE.Get("rootDomainNamingContext")
+    
+  ' ADODB Connection to AD'
+  Set objConnection = CreateObject("ADODB.Connection")
+  objConnection.Open "Provider=ADsDSOObject;"
+        
+  ' Connection'
+  Set objCommand = CreateObject("ADODB.Command")
+  objCommand.ActiveConnection = objConnection
+
+  'Write headers in report'
+  InfoLine = "Username,Email,Last Name,First Name,Country,Location"
+  objLogFile.Writeline InfoLine
+
+  'Getting info from textarea'
+  strText = ScriptArea.Value
+  arrLines = Split(strText, vbCrLf)
+
+  'Here we define the grand total'
+  totallenght = 0
+
+  For Each strLine in arrLines
+    totallenght = totallenght + 1
+  Next
+  count = 0
+  count2 = 0
+
+  'fetch info'
+  For Each strLine in arrLines
+
+    strUser = strLine 
+    InfoLine = strUser & ","
+    SearchString = strLine
+
+    'MAIL SEARCH ***************************************************************************************'
+    SearchField = "SamAccountName"
+    ReturnField = "mail"
+
+   ' Search the AD recursively, starting at root of the domain'
+    objCommand.CommandText = "<" & strRootAdsPath & ">;(&(objectCategory=User)" & "(" & SearchField & "=" & SearchString & "));" & SearchField & "," & ReturnField & ";subtree"
+
+    ' RecordSet'
+    Set objRecordSet = objCommand.Execute
+
+    If objRecordSet.RecordCount = 0 Then
+      GetAdsProp = "not found"  ' no records returned
+    Else
+      GetAdsProp = objRecordSet.Fields(ReturnField)  ' return value
+    End If
+
+    GetInfo = GetAdsProp
+    InfoLine = InfoLine & GetInfo & ","
+
+    'LASTNAME SEARCH ***************************************************************************************'
+
+    SearchField = "SamAccountName"
+    ReturnField = "sn"
+
+   ' Search the AD recursively, starting at root of the domain'
+    objCommand.CommandText = "<" & strRootAdsPath & ">;(&(objectCategory=User)" & "(" & SearchField & "=" & SearchString & "));" & SearchField & "," & ReturnField & ";subtree"
+
+    ' RecordSet'
+    Set objRecordSet = objCommand.Execute
+
+    If objRecordSet.RecordCount = 0 Then
+      GetAdsProp = "not found"  ' no records returned
+    Else
+      GetAdsProp = objRecordSet.Fields(ReturnField)  ' return value
+    End If
+
+    GetInfo = GetAdsProp
+    InfoLine = InfoLine & GetInfo & ","
+
+    'NAME SEARCH***************************************************************************************'
+
+    SearchField = "SamAccountName"
+    ReturnField = "givenname"
+
+   ' Search the AD recursively, starting at root of the domain'
+    objCommand.CommandText = "<" & strRootAdsPath & ">;(&(objectCategory=User)" & "(" & SearchField & "=" & SearchString & "));" & SearchField & "," & ReturnField & ";subtree"
+
+    ' RecordSet'
+    Set objRecordSet = objCommand.Execute
+
+    If objRecordSet.RecordCount = 0 Then
+      GetAdsProp = "not found"  ' no records returned
+    Else
+      GetAdsProp = objRecordSet.Fields(ReturnField)  ' return value
+    End If
+
+    GetInfo = GetAdsProp
+    InfoLine = InfoLine & GetInfo & ","
+
+    'COUNTRY SEARCH***************************************************************************************'
+
+    SearchField = "SamAccountName"
+    ReturnField = "co"
+
+   ' Search the AD recursively, starting at root of the domain'
+    objCommand.CommandText = "<" & strRootAdsPath & ">;(&(objectCategory=User)" & "(" & SearchField & "=" & SearchString & "));" & SearchField & "," & ReturnField & ";subtree"
+
+    ' RecordSet'
+    Set objRecordSet = objCommand.Execute
+
+    If objRecordSet.RecordCount = 0 Then
+      GetAdsProp = "not found"  ' no records returned
+    Else
+      GetAdsProp = objRecordSet.Fields(ReturnField)  ' return value
+    End If
+
+    GetInfo = GetAdsProp
+    InfoLine = InfoLine & GetInfo & ","
+
+    'LOCATION SEARCH***************************************************************************************'
+
+    earchField = "SamAccountName"
+    ReturnField = "l"
+
+   ' Search the AD recursively, starting at root of the domain'
+    objCommand.CommandText = "<" & strRootAdsPath & ">;(&(objectCategory=User)" & "(" & SearchField & "=" & SearchString & "));" & SearchField & "," & ReturnField & ";subtree"
+
+    ' RecordSet'
+    Set objRecordSet = objCommand.Execute
+
+    If objRecordSet.RecordCount = 0 Then
+      GetAdsProp = "not found"  ' no records returned
+    Else
+      GetAdsProp = objRecordSet.Fields(ReturnField)  ' return value
+    End If
+
+    GetInfo = GetAdsProp
+    InfoLine = InfoLine & GetInfo & ","
+
+    '***************************************************************************************'
+
+    objLogFile.Writeline InfoLine
+
+    count = count + 1
+    Junk.InnerHTML = count & " out of " & totallenght
+
+  Next
+
+  ' Close connection'
+  objConnection.Close
+      
+  ' Cleanup'
+  Set objRecordSet = Nothing
+  Set objCommand = Nothing
+  Set objConnection = Nothing
+
+  objLogFile.Close
+
+  msgbox "Report.csv file has been generated in the current working directory."
+
+
+End Sub
+
+
+</SCRIPT>
+
+<body>
+
+  <BR>Add users separated by an enter.</BR>
+  <BR></BR>
+
+  <textarea name="ScriptArea" rows=20 cols=42></textarea><p>
+  <input id=runbutton  type="button" value="Run Report" name="run_button"  onClick="TestSub">
+  <span id="Junk"></span>
+
+</body>
